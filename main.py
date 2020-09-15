@@ -3,6 +3,9 @@ from tkinter import *
 import tkinter.filedialog
 import tkinter.messagebox
 from pygame import mixer
+import time
+import threading
+from mutagen.mp3 import MP3
 
 root = Tk()
 
@@ -43,8 +46,54 @@ mixer.init()
 root.title("Akash Music Player")
 root.iconbitmap(r'icon.ico')
 
-textlabel = Label(root, text="Lets Rock the Music...!")
-textlabel.pack(pady=10)
+fileLabel = Label(root, text="Lets Rock the Music...!")
+fileLabel.pack(pady=10)
+
+lengthLabel = Label(root, text='Go to File -> Open and Select a Music ')
+lengthLabel.pack()
+
+timeLabel = Label(root, text='--!|/Music Player With no Music is like Earth without Nature/|!--')
+timeLabel.pack()
+
+
+def show_details():
+    fileLabel['text'] = "Playing" + ' - ' + os.path.basename(filename)
+
+    file_data = os.path.splitext(filename)
+
+    if file_data[1] == '.mp3':
+        audio = MP3(filename)
+        total_length = audio.info.length
+    else:
+        a = mixer.Sound(filename)
+        total_length = a.get_length()
+
+    # div - total_length/60, mod - total_length % 60
+    mins, secs = divmod(total_length, 60)
+    mins = round(mins)
+    secs = round(secs)
+    timeformat = '{:02d}:{:02d}'.format(mins, secs)
+    lengthLabel['text'] = "Total Length" + ' - ' + timeformat
+
+    t1 = threading.Thread(target=start_count, args=(total_length,))
+    t1.start()
+
+
+def start_count(t):
+    global paused
+    x = 0
+    while x <= t and mixer.music.get_busy():
+        if paused:
+            continue
+        else:
+            mins, secs = divmod(x, 60)
+            mins = round(mins)
+            secs = round(secs)
+            timeformat = '{:02d}:{:02d}'.format(mins, secs)
+            timeLabel['text'] = "Current Time" + ' - ' + timeformat
+            time.sleep(1)
+            x += 1
+
 
 paused = False
 mute = False
@@ -62,6 +111,7 @@ def play_fun():
                 mixer.music.load(filename)
                 mixer.music.play()
                 statusbar['text'] = 'Now Playing' + '  - ' + os.path.basename(filename)
+                show_details()
                 play = True
         except:
             tkinter.messagebox.showerror('File Not Found', 'Please Select a Valid Sound File and Try Again')
@@ -110,7 +160,7 @@ middleFrame = Frame(root)
 middleFrame.pack(padx=20, pady=30)
 
 lowerFrame = Frame(root)
-lowerFrame.pack(padx=10,pady=10)
+lowerFrame.pack(padx=10, pady=10)
 
 playPhoto = PhotoImage(file='play.png')
 playBtn = Button(middleFrame, image=playPhoto, command=play_fun)
